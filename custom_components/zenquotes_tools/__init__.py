@@ -36,6 +36,8 @@ SERVICE_SCHEMA_TRANSLATE = vol.Schema(
     }
 )
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up domain-level services."""
