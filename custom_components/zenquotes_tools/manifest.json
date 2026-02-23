@@ -1,9 +1,10 @@
 {
   "domain": "zenquotes_tools",
   "name": "ZenQuotes Tools",
-  "codeowners": [],
+  "codeowners": ["@BrunoAFK"],
   "config_flow": true,
-  "documentation": "https://zenquotes.io/",
+  "documentation": "https://github.com/BrunoAFK/zenquotes_tools",
+  "issue_tracker": "https://github.com/BrunoAFK/zenquotes_tools/issues",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "requirements": [],

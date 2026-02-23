@@ -2,89 +2,84 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
-`zenquotes_tools` dohvaća citate i "on this day" činjenice sa ZenQuotes izvora i izlaže ih kroz senzore u Home Assistantu.
+`zenquotes_tools` fetches quote content and “on this day” items from ZenQuotes endpoints and exposes them as Home Assistant sensors.
 
-## Što integracija radi
-- Dohvaća batch citata (`zenquotes.io/api/quotes`)
-- Dohvaća "on this day" stavke (`today.zenquotes.io`)
-- Drži dnevni cache i automatski refresh na ponoć
-- Omogućuje ručni random pick bez API poziva
-- Opcionalno prevodi sadržaj preko `ai_task`
+## What this integration does
+- Fetches quote batches from `zenquotes.io/api/quotes`
+- Fetches daily “on this day” items from `today.zenquotes.io`
+- Keeps daily local cache and auto-refreshes at midnight
+- Supports random item rotation without new API calls
+- Supports optional AI translation via `ai_task`
 
-## Instalacija
-### HACS (preporučeno)
-1. Otvori HACS.
-2. Idi na `Integrations`.
-3. `Custom repositories` -> dodaj ovaj repo kao `Integration`.
-4. Instaliraj `ZenQuotes Tools`.
-5. Restartaj Home Assistant.
+## Quick start
+1. Install via HACS (Custom Repository) or copy manually to `custom_components/zenquotes_tools`.
+2. Restart Home Assistant.
+3. Add integration: `ZenQuotes Tools`.
+4. Configure quote count, on-this-day count, and optional translation.
+
+## Installation
+### HACS (recommended)
+1. Open HACS.
+2. Go to `Integrations`.
+3. Open `Custom repositories`.
+4. Add this repository as category `Integration`.
+5. Install `ZenQuotes Tools`.
+6. Restart Home Assistant.
 
 ### Manual
-1. Kopiraj `custom_components/zenquotes_tools` u HA `custom_components` direktorij.
-2. Restartaj Home Assistant.
+1. Copy `custom_components/zenquotes_tools` into your HA `custom_components` directory.
+2. Restart Home Assistant.
 
-## Konfiguracija
-1. `Settings` -> `Devices & Services` -> `Add Integration`.
-2. Odaberi `ZenQuotes Tools`.
-3. Kroz `Configure` podešavaš opcije:
-   - `quotes_enabled`
-   - `quotes_count` (1-50)
-   - `on_this_day_enabled`
-   - `on_this_day_count` (1-50)
-   - `translation_enabled`
-   - `translation_language`
-   - `translation_ai_task_entity` (opcionalno)
+## Configuration
+Use `Configure` on the integration entry to set:
+- `quotes_enabled`
+- `quotes_count` (1-50)
+- `on_this_day_enabled`
+- `on_this_day_count` (1-50)
+- `translation_enabled`
+- `translation_language`
+- `translation_ai_task_entity` (optional)
 
-Napomena:
-- Integracija je `single instance`.
+Note:
+- The integration is single-instance.
 
-## Entiteti
+## Entities
 - `sensor.zenquotes_tools`
-  - glavni payload (liste citata i on-this-day podataka, markdown, translation polja)
+  - main payload (quotes, on-this-day, markdown, translated fields)
 - `sensor.zenquotes_random_quote`
-  - trenutno random odabran citat
+  - current random quote
 - `sensor.zenquotes_random_on_this_day`
-  - trenutno random odabrana on-this-day stavka
+  - current random on-this-day item
 - `sensor.zenquotes_translation_status`
-  - status prijevoda (`idle|translating|done|error`)
+  - translation state (`idle|translating|done|error`)
 
-## Servisi
+## Services
 - `zenquotes_tools.refresh`
-  - osvježi podatke s API-ja
+  - fetch fresh data from APIs
 - `zenquotes_tools.randomize`
-  - promijeni random odabir iz cachea (bez API poziva)
+  - rotate cached random selection (no API call)
   - `target`: `quotes` | `on_this_day` | `both`
 - `zenquotes_tools.translate`
-  - ručno pokreni AI prijevod
+  - trigger AI translation manually
 
-Opcionalno za sve servise:
+Optional field for all services:
 - `entry_id`
 
-## Atributi i payload
-Glavni senzor uključuje, između ostalog:
-- `quotes`
-- `quotes_markdown`
-- `on_this_day_all`
-- `on_this_day_markdown`
-- `random_quote`
-- `random_on_this_day`
-- prevedene varijante (`*_translated`)
-- `attribution`
+## Troubleshooting
+- If no data appears, run `zenquotes_tools.refresh` manually.
+- If translation fails, verify `ai_task` service and entity selection.
+- If API errors persist, check source endpoint availability.
 
-## Ograničenja
-- Podaci ovise o vanjskim API servisima.
-- Ako `ai_task` servis nije dostupan, prijevod neće raditi.
+## HACS updates
+HACS shows updates when a newer release/tag is published and `manifest.json` version is higher.
 
-## HACS update flow
-HACS prikazuje update kada postoji novi release/tag i veći `manifest.json` `version`.
+Recommended release flow:
+1. Bump `custom_components/zenquotes_tools/manifest.json` version.
+2. Push to `main`.
+3. Publish release/tag `vX.Y.Z`.
 
-Preporučeni flow:
-1. Povećaj `custom_components/zenquotes_tools/manifest.json` -> `version`.
-2. Merge/push na `main`.
-3. Objavi release/tag `vX.Y.Z`.
-
-## Podrška
-Bugove i feature requestove prijavi kroz GitHub Issues.
+## Support
+Please use GitHub Issues for bug reports and feature requests.
 
 ## Disclaimer
 
