@@ -1,0 +1,38 @@
+refresh:
+  name: Refresh
+  description: Fetch new ZenQuotes data now (quotes + on this day), then update sensors.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry id. If omitted and only one entry exists, it will be used automatically.
+      example: "abcd1234efgh5678"
+
+randomize:
+  name: Randomize
+  description: Pick a new random quote and/or on-this-day item from today's cached lists (no API call).
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry id. If omitted and only one entry exists, it will be used automatically.
+      example: "abcd1234efgh5678"
+    target:
+      name: Target
+      description: What to randomize.
+      example: "both"
+      selector:
+        select:
+          options:
+            - "quotes"
+            - "on_this_day"
+            - "both"
+
+translate:
+  name: Translate
+  description: >
+    Manually trigger AI translation of all current quotes and on-this-day items.
+    Translation runs in the background — check sensor.zenquotes_translation_status for progress.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Optional config entry id. If omitted and only one entry exists, it will be used automatically.
+      example: "abcd1234efgh5678"

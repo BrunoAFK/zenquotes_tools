@@ -1,0 +1,50 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ZenQuotes Tools",
+        "description": "Kreiraj ZenQuotes Tools unos.",
+        "data": {}
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Dopuštena je samo jedna instanca."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Postavke ZenQuotes Tools",
+        "data": {
+          "quotes_enabled": "Uključi quoteove",
+          "quotes_count": "Koliko quoteova",
+          "on_this_day_enabled": "Uključi Na današnji dan",
+          "on_this_day_count": "Koliko stavki za Na današnji dan",
+          "translation_enabled": "Uključi prijevod preko AI Task",
+          "translation_language": "Ciljni jezik",
+          "translation_ai_task_entity": "AI Task entitet (opcionalno)"
+        }
+      }
+    }
+  },
+  "services": {
+    "refresh": {
+      "name": "Osvježi",
+      "description": "Dohvati nove ZenQuotes podatke odmah (citati + na današnji dan) i ažuriraj senzore."
+    },
+    "randomize": {
+      "name": "Randomiziraj",
+      "description": "Odaberi novi nasumični citat i/ili stavku na-današnji-dan iz današnje predmemorije (bez API poziva).",
+      "fields": {
+        "target": {
+          "name": "Cilj",
+          "description": "Što randomizirati: quotes, on_this_day ili both."
+        }
+      }
+    },
+    "translate": {
+      "name": "Prevedi",
+      "description": "Ručno pokretanje AI prijevoda svih trenutnih citata i stavki na-današnji-dan. Radi u pozadini — provjeri sensor.zenquotes_translation_status za napredak."
+    }
+  }
+}

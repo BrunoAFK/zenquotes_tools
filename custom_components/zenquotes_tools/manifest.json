@@ -1,0 +1,11 @@
+{
+  "domain": "zenquotes_tools",
+  "name": "ZenQuotes Tools",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://zenquotes.io/",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "version": "1.0.0"
+}

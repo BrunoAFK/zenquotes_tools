@@ -1,0 +1,75 @@
+name: Release on Manifest Version Change
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - custom_components/zenquotes_tools/manifest.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract versions
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          MANIFEST="custom_components/zenquotes_tools/manifest.json"
+
+          NEW_VERSION="$(grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' "$MANIFEST" | head -n1 | sed -E 's/.*"([^"]+)"$/\1/')"
+          if [[ -z "${NEW_VERSION}" ]]; then
+            echo "Could not read version from ${MANIFEST}"
+            exit 1
+          fi
+
+          if [[ ! "${NEW_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z]+)*$ ]]; then
+            echo "Version '${NEW_VERSION}' is not valid semver-like format."
+            exit 1
+          fi
+
+          OLD_VERSION=""
+          if [[ "${{ github.event_name }}" == "push" ]] && [[ -n "${{ github.event.before }}" ]]; then
+            OLD_VERSION="$(git show "${{ github.event.before }}:${MANIFEST}" 2>/dev/null | grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' | head -n1 | sed -E 's/.*"([^"]+)"$/\1/' || true)"
+          fi
+
+          echo "old=${OLD_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "new=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Stop if version did not change
+        if: github.event_name == 'push' && steps.version.outputs.old == steps.version.outputs.new
+        run: |
+          echo "Manifest changed but version stayed the same (${{ steps.version.outputs.new }})."
+
+      - name: Check if tag already exists
+        id: tagcheck
+        if: github.event_name != 'push' || steps.version.outputs.old != steps.version.outputs.new
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          if git rev-parse -q --verify "refs/tags/${{ steps.version.outputs.tag }}" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        if: (github.event_name != 'push' || steps.version.outputs.old != steps.version.outputs.new) && steps.tagcheck.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          target_commitish: ${{ github.sha }}

@@ -1,0 +1,50 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ZenQuotes Tools",
+        "description": "Create a ZenQuotes Tools entry.",
+        "data": {}
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Only one instance is allowed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "ZenQuotes Tools options",
+        "data": {
+          "quotes_enabled": "Enable quotes",
+          "quotes_count": "How many quotes",
+          "on_this_day_enabled": "Enable on this day",
+          "on_this_day_count": "How many on this day items",
+          "translation_enabled": "Enable translation via AI Task",
+          "translation_language": "Target language",
+          "translation_ai_task_entity": "AI Task entity (optional)"
+        }
+      }
+    }
+  },
+  "services": {
+    "refresh": {
+      "name": "Refresh",
+      "description": "Fetch new ZenQuotes data now (quotes + on this day), then update sensors."
+    },
+    "randomize": {
+      "name": "Randomize",
+      "description": "Pick a new random quote and/or on-this-day item from today's cached lists (no API call).",
+      "fields": {
+        "target": {
+          "name": "Target",
+          "description": "What to randomize: quotes, on_this_day, or both."
+        }
+      }
+    },
+    "translate": {
+      "name": "Translate",
+      "description": "Manually trigger AI translation of all current quotes and on-this-day items. Runs in the background — check sensor.zenquotes_translation_status for progress."
+    }
+  }
+}
