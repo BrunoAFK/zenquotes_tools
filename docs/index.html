@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ZenQuotes Tools — Home Assistant Integration</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<script>
+(function(){
+  var tc=document.cookie.match(/theme=(dark|light)/);
+  var isDark=tc?tc[1]==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if(isDark)document.documentElement.classList.add('dark');
+  var lc=document.cookie.match(/lang=(hr|en)/);
+  var lang;
+  if(lc){lang=lc[1];}
+  else{var bl=(navigator.language||'en').toLowerCase();lang=bl.startsWith('hr')||bl.startsWith('sr')||bl.startsWith('bs')?'hr':'en';}
+  document.documentElement.setAttribute('data-lang',lang);
+  document.documentElement.lang=lang;
+  window.__lang=lang;
+})();
+</script>
+
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{display:['Lora','serif'],body:['Inter','sans-serif'],mono:['JetBrains Mono','monospace']}}}}
+</script>
+
+<style>
+body{font-family:'Inter',sans-serif;font-size:17px;line-height:1.65;overflow-x:hidden;background:#f7fffe;}
+html.dark body{background:#05120f;}
+
+.quote-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.quote-frag{
+  position:absolute;font-family:'Lora',serif;font-style:italic;
+  opacity:0;animation:quoteFade var(--dur,10s) ease-in-out infinite var(--delay,0s);
+  user-select:none;white-space:nowrap;font-size:clamp(.7rem,1.4vw,.95rem);
+}
+@keyframes quoteFade{
+  0%{opacity:0;transform:translateY(10px);}
+  15%{opacity:var(--op,.06);}
+  80%{opacity:var(--op,.06);}
+  100%{opacity:0;transform:translateY(-8px);}
+}
+
+.bamboo-bg{
+  background-image:repeating-linear-gradient(
+    90deg,transparent,transparent 140px,rgba(20,184,166,.035) 140px,rgba(20,184,166,.035) 141px
+  );
+}
+html.dark .bamboo-bg{
+  background-image:repeating-linear-gradient(
+    90deg,transparent,transparent 140px,rgba(20,184,166,.055) 140px,rgba(20,184,166,.055) 141px
+  );
+}
+
+.zen-glow{
+  position:absolute;width:700px;height:700px;border-radius:50%;
+  background:radial-gradient(circle,rgba(20,184,166,.1) 0%,transparent 65%);
+  pointer-events:none;
+  animation:glowPulse 7s ease-in-out infinite;
+}
+@keyframes glowPulse{0%,100%{opacity:.5;}50%{opacity:1;transform:scale(1.06);}}
+
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+.cb{background:rgba(20,184,166,.05);border:1px solid rgba(20,184,166,.18);border-radius:10px;}
+html.dark .cb{background:rgba(20,184,166,.07);border-color:rgba(20,184,166,.22);}
+
+.grad{background:linear-gradient(135deg,#0d9488,#14b8a6,#2dd4bf);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+
+.card{transition:all .25s ease;border:1px solid rgba(20,184,166,.1);border-radius:1.25rem;background:rgba(255,255,255,.7);}
+html.dark .card{background:rgba(255,255,255,.028);border-color:rgba(20,184,166,.09);}
+.card:hover{border-color:rgba(20,184,166,.38);transform:translateY(-3px);box-shadow:0 8px 30px rgba(20,184,166,.1);}
+
+.sensor-badge{transition:all .2s ease;cursor:default;border-radius:12px;}
+.sensor-badge:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(20,184,166,.18);}
+
+.tl-line{position:absolute;left:19px;top:44px;bottom:8px;width:2px;background:linear-gradient(to bottom,rgba(20,184,166,.45),transparent);}
+
+.dot{display:inline-block;}
+.dot:nth-child(1){animation:dotB 1.4s ease-in-out infinite;}
+.dot:nth-child(2){animation:dotB 1.4s ease-in-out .2s infinite;}
+.dot:nth-child(3){animation:dotB 1.4s ease-in-out .4s infinite;}
+@keyframes dotB{0%,80%,100%{transform:scale(.6);opacity:.4;}40%{transform:scale(1);opacity:1;}}
+
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(20,184,166,.35);border-radius:3px;}
+
+.theme-pill{display:flex;align-items:center;gap:8px;background:transparent;border:1px solid rgba(20,184,166,.22);border-radius:999px;padding:5px 12px 5px 10px;cursor:pointer;transition:border-color .2s,background .2s;}
+.theme-pill:hover{border-color:rgba(20,184,166,.55);background:rgba(20,184,166,.05);}
+.tptrack{position:relative;width:32px;height:18px;border-radius:9px;background:#94a3b8;transition:background .3s;flex-shrink:0;}
+html.dark .tptrack{background:#14b8a6;}
+.tpthumb{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:white;transition:transform .3s;}
+html.dark .tpthumb{transform:translateX(14px);}
+.tplabel{font-family:'JetBrains Mono',monospace;font-size:11px;color:#0d9488;letter-spacing:.05em;min-width:32px;}
+html.dark .tplabel{color:#2dd4bf;}
+
+.lang-toggle{display:flex;align-items:center;border:1px solid rgba(20,184,166,.22);border-radius:999px;overflow:hidden;transition:border-color .2s;}
+.lang-toggle:hover{border-color:rgba(20,184,166,.55);}
+.lang-btn{padding:5px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.05em;cursor:pointer;transition:all .2s;color:#94a3b8;background:transparent;border:none;outline:none;}
+.lang-btn.active{color:white;background:#14b8a6;border-radius:999px;}
+.lang-btn:not(.active):hover{color:#14b8a6;}
+
+.lang-switching [data-t]{opacity:0!important;transition:opacity .15s ease;}
+[data-t]{transition:opacity .15s ease;}
+
+.sn{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.1em;}
+.divider{height:1px;background:linear-gradient(90deg,transparent,rgba(20,184,166,.16),transparent);}
+
+.hero-quote{font-family:'Lora',serif;font-style:italic;border-left:2px solid rgba(20,184,166,.45);padding-left:1.25rem;}
+
+@keyframes breathe{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
+.breathe{animation:breathe 4s ease-in-out infinite;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+
+<body class="text-slate-700 dark:text-slate-300 transition-colors duration-300">
+
+<script>
+const T={
+  hr:{
+    theme_dark:"Tamno",theme_light:"Svijetlo",nav_github:"GitHub",
+    hero_quote:'"Mudrost nije znanje činjenica, već razumijevanje života."',
+    hero_sub:"Home Assistant integracija koja dohvaća inspiracijske citate i \"na ovaj dan\" događaje iz ZenQuotes API-ja — s opcionalnim AI prijevodom i lokalnim cachiranjem.",
+    badge_hacs:"HACS kompatibilno",badge_ha:"Home Assistant",badge_ai:"AI prijevod",badge_os:"Open Source",
+    scroll:"Skrolaj",
+    s01_label:"O projektu",s01_title:"Što je ZenQuotes Tools?",
+    c1_title:"Citati i mudrost",c1_body:"Dohvaća batch-ove inspiracijskih citata s zenquotes.io/api/quotes. Lokalni cache osigurava brz pristup bez nepotrebnih API poziva.",
+    c2_title:"Na ovaj dan",c2_body:"Dohvaća \"na ovaj dan\" događaje s today.zenquotes.io — automatski osvježava u ponoć bez ikakve intervencije.",
+    c3_title:"Slučajna rotacija",c3_body:"Rotacija slučajnog citata i itema iz lokalnog cachea bez novog API poziva — savršeno za dashboard kartice koje se mijenjaju.",
+    c4_title:"AI prijevod",c4_body:"Opcionalni AI prijevod putem HA ai_task servisa. Prijevod se sprema kao posebno polje u payload sensoru.",
+    s02_label:"Instalacija",s02_title:"HACS Custom Repository",s02_sub:"Preporučeni način instalacije — kroz HACS kao custom repozitorij.",
+    step1_title:"Otvori HACS",step1_body:"U Home Assistantu idi na",
+    step2_title:"Custom repozitoriji",step2_body:"Klikni na",
+    step3_title:"Dodaj repozitorij",step3_body:"URL repozitorija i kategorija",
+    step4_title:"Instaliraj",step4_body:"Pronađi",step4_body2:"u HACS i klikni Install",
+    step5_title:"Restart & Konfiguracija",step5_body:"Restartaj HA → idi na",step5_body2:"→ ZenQuotes Tools",
+    manual_label:"Ručna instalacija",manual_1:"Kopiraj mapu",manual_1b:"u HA config direktorij",
+    manual_2:"Restartaj Home Assistant",manual_3:"Dodaj integraciju kroz Settings",
+    target_path:"Target path",domain_label:"Integration domain",entity_prefix:"Tip integracije",
+    s03_label:"Konfiguracija",s03_title:"Postavljanje integracije",
+    cfg_p1:"Nakon instalacije i restarta, integracija se dodaje kroz standardni HA UI. Single-instance — može se dodati samo jednom.",
+    cfg_p2:"U opcijama (Configure) podešavaš broj citata, broj \"na ovaj dan\" itema i sve postavke AI prijevoda.",
+    cfg_p3:"Podaci se automatski osvježavaju u ponoć. AI prijevod je potpuno opcionalan — integracija radi i bez njega.",
+    cfg_quotes:"Broj citata",cfg_otd:"Na ovaj dan (broj)",cfg_translation:"AI prijevod",cfg_lang:"Jezik prijevoda",
+    cfg_note:"Napomena",cfg_note_body:"Single-instance integracija — može se dodati samo jednom u HA.",
+    author_label:"Autor",tech_label:"Tehnologije",source_label:"Izvor podataka",
+    s04_label:"Senzori",s04_title:"Entiteti i senzori",s04_sub:"Senzori kreirani automatski pri dodavanju integracije.",
+    s05_label:"Servisi",s05_title:"HA servisi",
+    svc1_title:"zenquotes_tools.refresh",svc1_body:"Odmah dohvaća nove podatke s API-ja bez čekanja na ponoćno osvježavanje.",
+    svc2_title:"zenquotes_tools.randomize",svc2_body:"Rotira slučajni odabir iz lokalnog cachea — bez API poziva. Target: quotes, on_this_day ili both.",
+    svc3_title:"zenquotes_tools.translate",svc3_body:"Pokreće AI prijevod za trenutne payload-e. Opcijski prima entry_id parametar.",
+    s06_label:"Značajke",s06_title:"Ključne značajke",
+    f1_title:"Dnevni cache",f1_body:"Lokalni cache osvježava se u ponoć — brz pristup bez nepotrebnih API poziva.",
+    f2_title:"Random rotacija",f2_body:"Servisi za slučajnu rotaciju citata i događaja direktno iz cachea — bez API poziva.",
+    f3_title:"AI prijevod",f3_body:"Opcionalni AI prijevod na bilo koji jezik putem HA ai_task entiteta.",
+    f4_title:"Markdown podrška",f4_body:"Payload sensor sadržava markdown-formatiranu verziju — idealno za Markdown dashboard kartice.",
+    f5_title:"HACS update flow",f5_body:"Standardni HACS flow — release tag i nova verzija u manifest.json.",
+    f6_title:"Bez redistributacije",f6_body:"Ne cachira niti redistribuira sadržaj izvan korisnikovog HA — direktni fetch s izvora.",
+    s07_label:"Dokumentacija",s07_title:"Resursi i podrška",
+    d1_title:"GitHub repozitorij",d2_title:"Prijavi bug",d3_title:"ZenQuotes API",d4_title:"Releases",
+    cta:"Pogledaj na GitHubu",
+    footer_sub:"Home Assistant Integration",footer_hacs:"HACS Custom Integration",footer_os:"Open Source",
+    footer_unofficial:"Neslužbeni projekt — nije povezan s zenquotes.io",
+  },
+  en:{
+    theme_dark:"Dark",theme_light:"Light",nav_github:"GitHub",
+    hero_quote:'"Wisdom is not knowledge of facts, but understanding of life."',
+    hero_sub:"A Home Assistant integration that fetches inspirational quotes and \"on this day\" items from the ZenQuotes API — with optional AI translation and local caching.",
+    badge_hacs:"HACS Compatible",badge_ha:"Home Assistant",badge_ai:"AI Translation",badge_os:"Open Source",
+    scroll:"Scroll",
+    s01_label:"About",s01_title:"What is ZenQuotes Tools?",
+    c1_title:"Quotes & Wisdom",c1_body:"Fetches batches of inspirational quotes from zenquotes.io/api/quotes. Local cache ensures fast access without unnecessary API calls.",
+    c2_title:"On This Day",c2_body:"Fetches \"on this day\" items from today.zenquotes.io — auto-refreshes at midnight without any intervention.",
+    c3_title:"Random Rotation",c3_body:"Rotates a random quote and item from local cache without a new API call — perfect for dashboard cards that change throughout the day.",
+    c4_title:"AI Translation",c4_body:"Optional AI translation via the HA ai_task service. Translation is stored as a separate field in the payload sensor.",
+    s02_label:"Installation",s02_title:"HACS Custom Repository",s02_sub:"The recommended installation method — via HACS as a custom repository.",
+    step1_title:"Open HACS",step1_body:"In Home Assistant navigate to",
+    step2_title:"Custom Repositories",step2_body:"Click",
+    step3_title:"Add Repository",step3_body:"Enter the repository URL and set category to",
+    step4_title:"Install",step4_body:"Find",step4_body2:"in HACS and click Install",
+    step5_title:"Restart & Configure",step5_body:"Restart HA → navigate to",step5_body2:"→ ZenQuotes Tools",
+    manual_label:"Manual Installation",manual_1:"Copy the folder",manual_1b:"to your HA config directory",
+    manual_2:"Restart Home Assistant",manual_3:"Add integration via Settings",
+    target_path:"Target path",domain_label:"Integration domain",entity_prefix:"Integration type",
+    s03_label:"Configuration",s03_title:"Setting up the integration",
+    cfg_p1:"After installation and restart, the integration is added through the standard HA UI. Single-instance — it can only be added once.",
+    cfg_p2:"In the options (Configure) you set the quote count, on-this-day count, and all AI translation settings.",
+    cfg_p3:"Data auto-refreshes at midnight. AI translation is completely optional — the integration works without it.",
+    cfg_quotes:"Quote count",cfg_otd:"On this day (count)",cfg_translation:"AI translation",cfg_lang:"Translation language",
+    cfg_note:"Note",cfg_note_body:"Single-instance integration — can only be added once to HA.",
+    author_label:"Author",tech_label:"Technologies",source_label:"Data source",
+    s04_label:"Sensors",s04_title:"Entities & Sensors",s04_sub:"Sensors created automatically when the integration is added.",
+    s05_label:"Services",s05_title:"HA Services",
+    svc1_title:"zenquotes_tools.refresh",svc1_body:"Immediately fetches fresh data from the API without waiting for the midnight refresh.",
+    svc2_title:"zenquotes_tools.randomize",svc2_body:"Rotates a random selection from local cache — no API call. Target: quotes, on_this_day or both.",
+    svc3_title:"zenquotes_tools.translate",svc3_body:"Triggers AI translation for current payloads. Optionally accepts an entry_id parameter.",
+    s06_label:"Features",s06_title:"Key features",
+    f1_title:"Daily cache",f1_body:"Local cache auto-refreshes at midnight — fast access without unnecessary API calls.",
+    f2_title:"Random rotation",f2_body:"Services for random rotation of quotes and events directly from cache — no API calls.",
+    f3_title:"AI translation",f3_body:"Optional AI translation to any language via the HA ai_task entity.",
+    f4_title:"Markdown support",f4_body:"Payload sensor includes a markdown-formatted version — ideal for Markdown dashboard cards.",
+    f5_title:"HACS update flow",f5_body:"Standard HACS update flow — release tag and new version in manifest.json.",
+    f6_title:"No redistribution",f6_body:"Does not cache or redistribute content outside the user's HA — direct fetch from source.",
+    s07_label:"Documentation",s07_title:"Resources & Support",
+    d1_title:"GitHub Repository",d2_title:"Report a bug",d3_title:"ZenQuotes API",d4_title:"Releases",
+    cta:"View on GitHub",
+    footer_sub:"Home Assistant Integration",footer_hacs:"HACS Custom Integration",footer_os:"Open Source",
+    footer_unofficial:"Unofficial project — not affiliated with zenquotes.io",
+  }
+};
+</script>
+
+<!-- NAV -->
+<nav class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-10 py-4 border-b border-teal-500/10 bg-[#f7fffe]/85 dark:bg-[#05120f]/85 backdrop-blur-md">
+  <div class="flex items-center gap-2.5">
+    <span class="text-xl">🍃</span>
+    <span class="font-mono text-sm text-teal-600/55 dark:text-teal-400/45 tracking-widest uppercase">ZenQuotes Tools</span>
+  </div>
+  <div class="flex items-center gap-3">
+    <div class="lang-toggle">
+      <button class="lang-btn" id="btnHr" onclick="setLang('hr')">HR</button>
+      <button class="lang-btn" id="btnEn" onclick="setLang('en')">EN</button>
+    </div>
+    <button class="theme-pill" id="themeToggle">
+      <div class="tptrack"><div class="tpthumb"></div></div>
+      <span class="tplabel" id="themeLabel"></span>
+    </button>
+    <a href="https://github.com/BrunoAFK/zenquotes_tools" target="_blank"
+       class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full border border-teal-500/22 hover:border-teal-500/55 hover:bg-teal-500/5 transition-all text-sm font-mono text-teal-600 dark:text-teal-400">
+      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      <span data-t="nav_github"></span>
+    </a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-6 pt-20 bamboo-bg">
+  <div class="quote-bg text-teal-600 dark:text-teal-400" aria-hidden="true" id="quoteBg"></div>
+  <div class="zen-glow top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 absolute"></div>
+
+  <div class="relative z-10 text-center max-w-3xl mx-auto" style="animation:fadeUp .9s ease forwards;opacity:0">
+    <div class="flex justify-center mb-10">
+      <div class="relative breathe">
+        <div class="absolute inset-0 rounded-2xl bg-teal-300/20 blur-2xl scale-150"></div>
+        <div class="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-teal-50 to-emerald-100 dark:from-teal-900/50 dark:to-emerald-950/70 border border-teal-200 dark:border-teal-500/25 flex items-center justify-center shadow-md shadow-teal-200/50 dark:shadow-teal-900/50">
+          <span class="text-5xl leading-none">🍃</span>
+        </div>
+        <div class="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-teal-500 flex items-center justify-center shadow shadow-teal-500/40">
+          <span class="text-white text-[8px] font-bold">HA</span>
+        </div>
+      </div>
+    </div>
+
+    <h1 class="font-display font-700 tracking-tight leading-none mb-2" style="font-size:clamp(3rem,9vw,5.5rem)">
+      <span class="grad">ZenQuotes</span><span class="text-slate-800 dark:text-white"> Tools</span>
+    </h1>
+    <p class="font-mono text-sm text-teal-600/55 dark:text-teal-400/45 tracking-widest uppercase mb-8">for Home Assistant · zenquotes.io</p>
+
+    <div class="hero-quote text-left max-w-xl mx-auto mb-8 text-slate-500 dark:text-slate-400">
+      <p class="text-xl leading-relaxed font-display italic" data-t="hero_quote"></p>
+    </div>
+
+    <p class="text-lg md:text-xl text-slate-500 dark:text-slate-400 font-light max-w-2xl mx-auto leading-relaxed" data-t="hero_sub"></p>
+
+    <div class="flex flex-wrap items-center justify-center gap-3 mt-8">
+      <span class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-teal-500/10 border border-teal-500/18 text-teal-700 dark:text-teal-300 text-sm font-mono">
+        <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse inline-block"></span>
+        <span data-t="badge_hacs"></span>
+      </span>
+      <span class="px-5 py-2.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 text-sm font-mono" data-t="badge_ha"></span>
+      <span class="px-5 py-2.5 rounded-full bg-emerald-500/10 border border-emerald-500/18 text-emerald-700 dark:text-emerald-300 text-sm font-mono">✦ <span data-t="badge_ai"></span></span>
+      <span class="px-5 py-2.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 text-sm font-mono" data-t="badge_os"></span>
+    </div>
+
+    <div class="mt-14 flex flex-col items-center gap-2 text-slate-300 dark:text-slate-700">
+      <span class="text-xs font-mono tracking-widest uppercase" data-t="scroll"></span>
+      <div class="flex gap-1">
+        <span class="dot w-1.5 h-1.5 rounded-full bg-teal-400 inline-block"></span>
+        <span class="dot w-1.5 h-1.5 rounded-full bg-teal-400 inline-block"></span>
+        <span class="dot w-1.5 h-1.5 rounded-full bg-teal-400 inline-block"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="py-28 px-6 bg-white/70 dark:bg-white/[0.018]">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal mb-12">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="sn text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-md">01</span>
+        <span class="text-sm font-mono text-slate-400 uppercase tracking-widest" data-t="s01_label"></span>
+      </div>
+      <h2 class="font-display font-700 text-slate-800 dark:text-white" style="font-size:clamp(2rem,5vw,3.25rem);line-height:1.15" data-t="s01_title"></h2>
+    </div>
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="reveal card p-8 shadow-sm dark:shadow-none">
+        <div class="w-14 h-14 rounded-xl bg-teal-500/10 flex items-center justify-center mb-6 text-3xl">💬</div>
+        <h3 class="font-display text-2xl font-600 mb-3 text-slate-800 dark:text-white" data-t="c1_title"></h3>
+        <p class="text-slate-500 dark:text-slate-400 leading-relaxed" data-t="c1_body"></p>
+      </div>
+      <div class="reveal card p-8 shadow-sm dark:shadow-none" style="transition-delay:.1s">
+        <div class="w-14 h-14 rounded-xl bg-teal-500/10 flex items-center justify-center mb-6 text-3xl">📅</div>
+        <h3 class="font-display text-2xl font-600 mb-3 text-slate-800 dark:text-white" data-t="c2_title"></h3>
+        <p class="text-slate-500 dark:text-slate-400 leading-relaxed" data-t="c2_body"></p>
+      </div>
+      <div class="reveal card p-8 shadow-sm dark:shadow-none" style="transition-delay:.15s">
+        <div class="w-14 h-14 rounded-xl bg-teal-500/10 flex items-center justify-center mb-6 text-3xl">🎲</div>
+        <h3 class="font-display text-2xl font-600 mb-3 text-slate-800 dark:text-white" data-t="c3_title"></h3>
+        <p class="text-slate-500 dark:text-slate-400 leading-relaxed" data-t="c3_body"></p>
+      </div>
+      <div class="reveal card p-8 shadow-sm dark:shadow-none" style="transition-delay:.2s">
+        <div class="w-14 h-14 rounded-xl bg-teal-500/10 flex items-center justify-center mb-6 text-3xl">🤖</div>
+        <h3 class="font-display text-2xl font-600 mb-3 text-slate-800 dark:text-white" data-t="c4_title"></h3>
+        <p class="text-slate-500 dark:text-slate-400 leading-relaxed" data-t="c4_body"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- INSTALLATION -->
+<section class="py-28 px-6 bg-teal-50/40 dark:bg-white/[0.01]">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal mb-14">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="sn text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-md">02</span>
+        <span class="text-sm font-mono text-slate-400 uppercase tracking-widest" data-t="s02_label"></span>
+      </div>
+      <h2 class="font-display font-700 text-slate-800 dark:text-white mb-3" style="font-size:clamp(2rem,5vw,3.25rem);line-height:1.15" data-t="s02_title"></h2>
+      <p class="text-lg text-slate-500 dark:text-slate-400 max-w-xl" data-t="s02_sub"></p>
+    </div>
+    <div class="flex flex-col lg:flex-row gap-10 items-start">
+      <div class="w-full lg:w-[58%] reveal">
+        <div class="relative">
+          <div class="tl-line"></div>
+          <div class="relative flex gap-5 pb-9">
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center text-white font-mono text-base z-10 shadow-md shadow-teal-500/25">1</div>
+            <div class="pt-1 min-w-0">
+              <h4 class="font-display text-xl font-600 text-slate-800 dark:text-white mb-1.5" data-t="step1_title"></h4>
+              <p class="text-base text-slate-500 dark:text-slate-400"><span data-t="step1_body"></span> <code class="font-mono text-sm text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded-md whitespace-nowrap">HACS → Integrations</code></p>
+            </div>
+          </div>
+          <div class="relative flex gap-5 pb-9">
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-teal-500/18 border border-teal-500/35 flex items-center justify-center text-teal-600 dark:text-teal-300 font-mono text-base z-10">2</div>
+            <div class="pt-1 min-w-0">
+              <h4 class="font-display text-xl font-600 text-slate-800 dark:text-white mb-1.5" data-t="step2_title"></h4>
+              <p class="text-base text-slate-500 dark:text-slate-400"><span data-t="step2_body"></span> <code class="font-mono text-sm text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded-md whitespace-nowrap">⋮ → Custom repositories</code></p>
+            </div>
+          </div>
+          <div class="relative flex gap-5 pb-9">
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-teal-500/18 border border-teal-500/35 flex items-center justify-center text-teal-600 dark:text-teal-300 font-mono text-base z-10">3</div>
+            <div class="pt-1 min-w-0 w-full">
+              <h4 class="font-display text-xl font-600 text-slate-800 dark:text-white mb-1.5" data-t="step3_title"></h4>
+              <p class="text-base text-slate-500 dark:text-slate-400 mb-3"><span data-t="step3_body"></span> <code class="font-mono text-sm text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded-md">Integration</code></p>
+              <div class="cb px-4 py-3 flex items-center gap-3">
+                <code class="font-mono text-sm text-teal-600 dark:text-teal-400 break-all flex-1">https://github.com/BrunoAFK/zenquotes_tools</code>
+                <button onclick="copyUrl(this,'https://github.com/BrunoAFK/zenquotes_tools')" class="flex-shrink-0 text-slate-400 hover:text-teal-500 transition-colors p-1">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="relative flex gap-5 pb-9">
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-teal-500/18 border border-teal-500/35 flex items-center justify-center text-teal-600 dark:text-teal-300 font-mono text-base z-10">4</div>
+            <div class="pt-1 min-w-0">
+              <h4 class="font-display text-xl font-600 text-slate-800 dark:text-white mb-1.5" data-t="step4_title"></h4>
+              <p class="text-base text-slate-500 dark:text-slate-400"><span data-t="step4_body"></span> <strong class="text-slate-700 dark:text-slate-200 font-600">ZenQuotes Tools</strong> <span data-t="step4_body2"></span></p>
+            </div>
+          </div>
+          <div class="relative flex gap-5">
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-teal-500/18 border border-teal-500/35 flex items-center justify-center text-teal-600 dark:text-teal-300 font-mono text-base z-10">5</div>
+            <div class="pt-1 min-w-0">
+              <h4 class="font-display text-xl font-600 text-slate-800 dark:text-white mb-1.5" data-t="step5_title"></h4>
+              <p class="text-base text-slate-500 dark:text-slate-400"><span data-t="step5_body"></span> <code class="font-mono text-sm text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded-md">Settings → Devices &amp; Services</code> <span data-t="step5_body2"></span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="w-full lg:w-[40%] space-y-5 reveal" style="transition-delay:.15s">
+        <div class="rounded-2xl border border-slate-200 dark:border-white/7 p-7 bg-white dark:bg-white/[0.03]">
+          <div class="flex items-center gap-2.5 mb-5">
+            <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="text-sm font-mono text-slate-400 uppercase tracking-wider" data-t="manual_label"></span>
+          </div>
+          <ol class="space-y-3">
+            <li class="flex gap-3 text-base text-slate-500 dark:text-slate-400">
+              <span class="text-teal-500 font-mono font-500 flex-shrink-0">1.</span>
+              <span><span data-t="manual_1"></span> <code class="font-mono text-sm text-teal-600 dark:text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded-md break-all">custom_components/zenquotes_tools</code> <span data-t="manual_1b"></span></span>
+            </li>
+            <li class="flex gap-3 text-base text-slate-500 dark:text-slate-400"><span class="text-teal-500 font-mono font-500 flex-shrink-0">2.</span><span data-t="manual_2"></span></li>
+            <li class="flex gap-3 text-base text-slate-500 dark:text-slate-400"><span class="text-teal-500 font-mono font-500 flex-shrink-0">3.</span><span data-t="manual_3"></span></li>
+          </ol>
+          <div class="mt-6 pt-5 border-t border-slate-100 dark:border-white/5">
+            <p class="text-xs font-mono text-slate-400 mb-2 uppercase tracking-wider" data-t="target_path"></p>
+            <div class="cb px-4 py-3"><code class="font-mono text-sm text-teal-600 dark:text-teal-400 break-all">&lt;HA_CONFIG&gt;/custom_components/zenquotes_tools</code></div>
+          </div>
+        </div>
+        <div class="rounded-xl border border-teal-500/18 bg-teal-500/[0.04] dark:bg-teal-500/[0.07] p-6">
+          <p class="text-xs font-mono text-teal-600 dark:text-teal-400 uppercase tracking-wider mb-2.5" data-t="domain_label"></p>
+          <p class="font-mono text-xl font-500 text-teal-700 dark:text-teal-300">zenquotes_tools</p>
+          <p class="text-sm font-mono text-teal-600/55 dark:text-teal-400/55 mt-2"><span data-t="entity_prefix"></span>: <span class="text-teal-600 dark:text-teal-400">single-instance</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CONFIG -->
+<section class="py-28 px-6 bg-white/70 dark:bg-white/[0.018]">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal mb-12">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="sn text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-md">03</span>
+        <span class="text-sm font-mono text-slate-400 uppercase tracking-widest" data-t="s03_label"></span>
+      </div>
+      <h2 class="font-display font-700 text-slate-800 dark:text-white" style="font-size:clamp(2rem,5vw,3.25rem);line-height:1.15" data-t="s03_title"></h2>
+    </div>
+    <div class="reveal mb-6">
+      <div class="rounded-2xl p-8 bg-white dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/5 space-y-5">
+        <p class="text-lg text-slate-500 dark:text-slate-400 leading-relaxed" data-t="cfg_p1"></p>
+        <p class="text-lg text-slate-500 dark:text-slate-400 leading-relaxed" data-t="cfg_p2"></p>
+        <p class="text-lg text-slate-500 dark:text-slate-400 leading-relaxed" data-t="cfg_p3"></p>
+      </div>
+    </div>
+    <div class="reveal mb-8">
+      <div class="rounded-2xl border border-teal-500/18 bg-teal-500/[0.03] dark:bg-teal-500/[0.05] p-7">
+        <p class="text-sm font-mono text-teal-600 dark:text-teal-400 uppercase tracking-wider mb-6">Configure options</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-6">
+          <div><p class="text-xs text-slate-400 font-mono mb-2 uppercase tracking-wide" data-t="cfg_quotes"></p><code class="font-mono text-base text-teal-600 dark:text-teal-400">1 – 50</code></div>
+          <div><p class="text-xs text-slate-400 font-mono mb-2 uppercase tracking-wide" data-t="cfg_otd"></p><code class="font-mono text-base text-teal-600 dark:text-teal-400">1 – 50</code></div>
+          <div><p class="text-xs text-slate-400 font-mono mb-2 uppercase tracking-wide" data-t="cfg_translation"></p><code class="font-mono text-base text-teal-600 dark:text-teal-400">true / false</code></div>
+          <div><p class="text-xs text-slate-400 font-mono mb-2 uppercase tracking-wide" data-t="cfg_lang"></p><code class="font-mono text-base text-teal-600 dark:text-teal-400">hr, en, de…</code></div>
+        </div>
+        <div class="mt-6 pt-5 border-t border-teal-500/12 flex gap-3 items-start">
+          <span class="text-base flex-shrink-0 mt-0.5">ℹ️</span>
+          <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed"><strong class="text-slate-700 dark:text-slate-300 font-600" data-t="cfg_note"></strong>: <span data-t="cfg_note_body"></span></p>
+        </div>
+      </div>
+    </div>
+    <!-- Info strip -->
+    <div class="reveal">
+      <div class="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/5 overflow-hidden">
+        <div class="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-white/5">
+          <div class="flex-1 p-5">
+            <p class="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3" data-t="author_label"></p>
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-full bg-teal-500/12 flex items-center justify-center text-teal-600 dark:text-teal-400 font-mono font-700 text-base flex-shrink-0">B</div>
+              <div><p class="font-display font-600 text-sm text-slate-800 dark:text-white">BrunoAFK</p><a href="https://github.com/BrunoAFK" target="_blank" class="text-xs font-mono text-teal-500 hover:text-teal-600 transition-colors">@BrunoAFK</a></div>
+            </div>
+          </div>
+          <div class="flex-1 p-5">
+            <p class="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3" data-t="tech_label"></p>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-white/5 text-xs font-mono text-slate-500 dark:text-slate-400">Python</span>
+              <span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-white/5 text-xs font-mono text-slate-500 dark:text-slate-400">REST API</span>
+              <span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-white/5 text-xs font-mono text-slate-500 dark:text-slate-400">Home Assistant</span>
+              <span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-white/5 text-xs font-mono text-slate-500 dark:text-slate-400">HACS</span>
+              <span class="px-2 py-1 rounded-md bg-emerald-500/10 text-xs font-mono text-emerald-600 dark:text-emerald-300">ai_task</span>
+            </div>
+          </div>
+          <div class="flex-1 p-5">
+            <p class="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3" data-t="source_label"></p>
+            <div class="flex items-center gap-2.5">
+              <span class="text-xl flex-shrink-0">💬</span>
+              <div><p class="font-display font-600 text-sm text-slate-800 dark:text-white">ZenQuotes API</p><a href="https://zenquotes.io" target="_blank" class="text-xs font-mono text-teal-500 hover:underline">zenquotes.io →</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SENSORS -->
+<section class="py-28 px-6 bg-teal-50/40 dark:bg-white/[0.01]">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal mb-14">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="sn text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-md">04</span>
+        <span class="text-sm font-mono text-slate-400 uppercase tracking-widest" data-t="s04_label"></span>
+      </div>
+      <h2 class="font-display font-700 text-slate-800 dark:text-white mb-3" style="font-size:clamp(2rem,5vw,3.25rem);line-height:1.15" data-t="s04_title"></h2>
+      <p class="text-lg text-slate-500 dark:text-slate-400 max-w-xl" data-t="s04_sub"></p>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-4 reveal mb-6">
+      <div class="sensor-badge cb p-5 flex items-start gap-4">
+        <span class="text-2xl flex-shrink-0">📦</span>
+        <div>
+          <div class="font-mono text-xs text-slate-400 mb-1">sensor</div>
+          <div class="font-mono text-sm font-500 text-teal-600 dark:text-teal-400 mb-1.5">zenquotes_tools</div>
+          <div class="text-sm text-slate-500 dark:text-slate-400">Glavni payload — citati, on-this-day, markdown i translated polja u atributima</div>
+        </div>
+      </div>
+      <div class="sensor-badge cb p-5 flex items-start gap-4">
+        <span class="text-2xl flex-shrink-0">💬</span>
+        <div>
+          <div class="font-mono text-xs text-slate-400 mb-1">sensor</div>
+          <div class="font-mono text-sm font-500 text-teal-600 dark:text-teal-400 mb-1.5">zenquotes_random_quote</div>
+          <div class="text-sm text-slate-500 dark:text-slate-400">Trenutni slučajni citat iz lokalnog cachea</div>
+        </div>
+      </div>
+      <div class="sensor-badge cb p-5 flex items-start gap-4">
+        <span class="text-2xl flex-shrink-0">📅</span>
+        <div>
+          <div class="font-mono text-xs text-slate-400 mb-1">sensor</div>
+          <div class="font-mono text-sm font-500 text-teal-600 dark:text-teal-400 mb-1.5">zenquotes_random_on_this_day</div>
+          <div class="text-sm text-slate-500 dark:text-slate-400">Trenutni slučajni "na ovaj dan" item iz cachea</div>
+        </div>
+      </div>
+      <div class="sensor-badge cb p-5 flex items-start gap-4" style="border-color:rgba(16,185,129,.2)">
+        <span class="text-2xl flex-shrink-0">🔄</span>
+        <div>
+          <div class="font-mono text-xs text-slate-400 mb-1">sensor</div>
+          <div class="font-mono text-sm font-500 text-emerald-600 dark:text-emerald-400 mb-1.5">zenquotes_translation_status</div>
+          <div class="text-sm text-slate-500 dark:text-slate-400">Status AI prijevoda: <span class="font-mono text-xs text-emerald-600 dark:text-emerald-400">idle | translating | done | error</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="reveal rounded-2xl border border-teal-500/15 bg-teal-500/[0.03] dark:bg-teal-500/[0.05] p-6">
+      <p class="text-xs font-mono text-teal-600 dark:text-teal-400 uppercase tracking-wider mb-4">Data model</p>
+      <div class="grid sm:grid-cols-3 gap-3 mb-4">
+        <div class="cb px-3 py-2"><code class="font-mono text-xs text-teal-600 dark:text-teal-400">state → timestamp</code></div>
+        <div class="cb px-3 py-2"><code class="font-mono text-xs text-teal-600 dark:text-teal-400">attributes.data → payload</code></div>
+        <div class="cb px-3 py-2"><code class="font-mono text-xs text-teal-600 dark:text-teal-400">attributes.source_urls → links</code></div>
+      </div>
+      <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Payload senzori koriste <code class="font-mono text-xs text-teal-600 dark:text-teal-400 bg-teal-500/10 px-1.5 rounded">state</code> za kratki timestamp, puni sadržaj ide u <code class="font-mono text-xs text-teal-600 dark:text-teal-400 bg-teal-500/10 px-1.5 rounded">attributes.data</code> — zaobilazi HA limit duljine stanja.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SERVICES -->
+<section class="py-28 px-6 bg-white/70 dark:bg-white/[0.018]">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal mb-12">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="sn text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-md">05</span>
+        <span class="text-sm font-mono text-slate-400 uppercase tracking-widest" data-t="s05_label"></span>
+      </div>
+      <h2 class="font-display font-700 text-slate-800 dark:text-white" style="font-size:clamp(2rem,5vw,3.25rem);line-height:1.15" data-t="s05_title"></h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-5 reveal">
+      <div class="card p-7 shadow-sm dark:shadow-none">
+        <div class="text-2xl mb-4">🔄</div>
+        <h4 class="font-display text-lg font-600 text-slate-800 dark:text-white mb-2" data-t="svc1_title"></h4>
+        <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-4" data-t="svc1_body"></p>
+        <div class="cb px-3 py-2"><code class="font-mono text-xs text-teal-600 dark:text-teal-400">refresh</code><span class="font-mono text-xs text-slate-400 ml-2">entry_id?</span></div>
+      </div>
+      <div class="card p-7 shadow-sm dark:shadow-none">
+        <div class="text-2xl mb-4">🎲</div>
+        <h4 class="font-display text-lg font-600 text-slate-800 dark:text-white mb-2" data-t="svc2_title"></h4>
+        <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-4" data-t="svc2_body"></p>
+        <div class="cb px-3 py-2"><code class="font-mono text-xs text-teal-600 dark:text-teal-400">randomize</code><span class="font-mono text-xs text-slate-400 ml-2">target, entry_id?</span></div>
+      </div>
+      <div class="card p-7 shadow-sm dark:shadow-none">
+        <div class="text-2xl mb-4">🤖</div>
+        <h4 class="font-display text-lg font-600 text-slate-800 dark:text-white mb-2" data-t="svc3_title"></h4>
+        <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-4" data-t="svc3_body"></p>
+        <div class="cb px-3 py-2"><code class="font-mono text-xs text-emerald-600 dark:text-emerald-400">translate</code><span class="font-mono text-xs text-slate-400 ml-2">entry_id?</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- FEATURES -->
+<section class="py-28 px-6 bg-teal-50/40 dark:bg-white/[0.01]">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal mb-12">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="sn text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-md">06</span>
+        <span class="text-sm font-mono text-slate-400 uppercase tracking-widest" data-t="s06_label"></span>
+      </div>
+      <h2 class="font-display font-700 text-slate-800 dark:text-white" style="font-size:clamp(2rem,5vw,3.25rem);line-height:1.15" data-t="s06_title"></h2>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 reveal">
+      <div class="card p-6 shadow-sm dark:shadow-none"><div class="text-2xl mb-4">🌙</div><h4 class="font-display text-lg font-600 text-slate-800 dark:text-white mb-2" data-t="f1_title"></h4><p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed" data-t="f1_body"></p></div>
+      <div class="card p-6 shadow-sm dark:shadow-none"><div class="text-2xl mb-4">🎲</div><h4 class="font-display text-lg font-600 text-slate-800 dark:text-white mb-2" data-t="f2_title"></h4><p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed" data-t="f2_body"></p></div>
+      <div class="card p-6 shadow-sm dark:shadow-none"><div class="text-2xl mb-4">✦</div><h4 class="font-display text-lg font-600 text-slate-800 dark:text-white mb-2" data-t="f3_title"></h4><p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed" data-t="f3_body"></p></div>
+      <div class="card p-6 shadow-sm dark:shadow-none"><div class="text-2xl mb-4">📝</div><h4 class="font-display text-lg font-600 text-slate-800 dark:text-white mb-2" data-t="f4_title"></h4><p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed" data-t="f4_body"></p></div>
+      <div class="card p-6 shadow-sm dark:shadow-none"><div class="text-2xl mb-4">📦</div><h4 class="font-display text-lg font-600 text-slate-800 dark:text-white mb-2" data-t="f5_title"></h4><p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed" data-t="f5_body"></p></div>
+      <div class="card p-6 shadow-sm dark:shadow-none"><div class="text-2xl mb-4">🔒</div><h4 class="font-display text-lg font-600 text-slate-800 dark:text-white mb-2" data-t="f6_title"></h4><p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed" data-t="f6_body"></p></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- DOCS + CTA -->
+<section class="py-28 px-6 bg-white/70 dark:bg-white/[0.018]">
+  <div class="max-w-5xl mx-auto">
+    <div class="reveal mb-12">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="sn text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-md">07</span>
+        <span class="text-sm font-mono text-slate-400 uppercase tracking-widest" data-t="s07_label"></span>
+      </div>
+      <h2 class="font-display font-700 text-slate-800 dark:text-white" style="font-size:clamp(2rem,5vw,3.25rem);line-height:1.15" data-t="s07_title"></h2>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 reveal">
+      <a href="https://github.com/BrunoAFK/zenquotes_tools" target="_blank" class="card block p-6 shadow-sm dark:shadow-none group">
+        <div class="text-2xl mb-4">📁</div>
+        <h4 class="font-display font-600 text-base text-slate-800 dark:text-white mb-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors" data-t="d1_title"></h4>
+        <p class="text-sm text-slate-400 font-mono">BrunoAFK/zenquotes_tools</p>
+      </a>
+      <a href="https://github.com/BrunoAFK/zenquotes_tools/issues" target="_blank" class="card block p-6 shadow-sm dark:shadow-none group">
+        <div class="text-2xl mb-4">🐛</div>
+        <h4 class="font-display font-600 text-base text-slate-800 dark:text-white mb-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors" data-t="d2_title"></h4>
+        <p class="text-sm text-slate-400 font-mono">GitHub Issues</p>
+      </a>
+      <a href="https://zenquotes.io" target="_blank" class="card block p-6 shadow-sm dark:shadow-none group">
+        <div class="text-2xl mb-4">🍃</div>
+        <h4 class="font-display font-600 text-base text-slate-800 dark:text-white mb-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors" data-t="d3_title"></h4>
+        <p class="text-sm text-slate-400 font-mono">zenquotes.io</p>
+      </a>
+      <a href="https://github.com/BrunoAFK/zenquotes_tools/releases" target="_blank" class="card block p-6 shadow-sm dark:shadow-none group">
+        <div class="text-2xl mb-4">🏷️</div>
+        <h4 class="font-display font-600 text-base text-slate-800 dark:text-white mb-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors" data-t="d4_title"></h4>
+        <p class="text-sm text-slate-400 font-mono">Latest release</p>
+      </a>
+    </div>
+    <div class="reveal mt-16 text-center">
+      <div class="inline-block relative">
+        <div class="absolute inset-0 bg-teal-400/12 blur-2xl rounded-full scale-150 pointer-events-none"></div>
+        <a href="https://github.com/BrunoAFK/zenquotes_tools" target="_blank"
+           class="relative inline-flex items-center gap-3 px-9 py-5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-display font-600 text-lg rounded-2xl transition-all hover:scale-[1.02] shadow-lg shadow-teal-500/20">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span data-t="cta"></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="py-10 px-6 border-t border-teal-500/10 bg-white/50 dark:bg-transparent">
+  <div class="max-w-5xl mx-auto">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">🍃</span>
+        <div>
+          <p class="font-display font-600 text-base text-slate-700 dark:text-slate-300">ZenQuotes Tools</p>
+          <p class="text-sm font-mono text-slate-400" data-t="footer_sub"></p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center justify-center gap-4 text-sm font-mono text-slate-400">
+        <span data-t="footer_hacs"></span>
+        <span>·</span>
+        <span data-t="footer_os"></span>
+        <span>·</span>
+        <a href="https://github.com/BrunoAFK/zenquotes_tools" target="_blank" class="hover:text-teal-500 transition-colors">BrunoAFK/zenquotes_tools</a>
+      </div>
+    </div>
+    <p class="text-center text-xs font-mono text-slate-400 dark:text-slate-600" data-t="footer_unofficial"></p>
+  </div>
+</footer>
+
+<script>
+// Floating quote fragments
+(function(){
+  var frags=['"Be yourself"','— Lao Tzu','Be the change','Carpe diem','"Know thyself"','Stay curious','"Amor fati"','One day at a time','Keep going','Per aspera','In the end','Do what you love','"Cogito"','每日一善','始终如一','Inspire','Wisdom'];
+  var bg=document.getElementById('quoteBg');
+  frags.forEach(function(f){
+    var el=document.createElement('span');
+    el.className='quote-frag';
+    el.textContent=f;
+    el.style.cssText=[
+      'left:'+(4+Math.random()*88)+'%',
+      'top:'+(Math.random()*90)+'%',
+      '--dur:'+(8+Math.random()*8)+'s',
+      '--delay:-'+(Math.random()*12)+'s',
+      '--op:'+(0.035+Math.random()*0.045),
+    ].join(';');
+    bg.appendChild(el);
+  });
+})();
+
+function getCookie(n){var m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));return m?m[1]:null;}
+function setCookie(n,v,d){var x=new Date();x.setTime(x.getTime()+d*864e5);document.cookie=n+'='+v+';expires='+x.toUTCString()+';path=/';}
+
+var themeLabel=document.getElementById('themeLabel');
+function updateThemeLabel(){
+  var lang=window.__lang||'hr';
+  themeLabel.textContent=document.documentElement.classList.contains('dark')?T[lang].theme_dark:T[lang].theme_light;
+}
+document.getElementById('themeToggle').addEventListener('click',function(){
+  var isDark=document.documentElement.classList.toggle('dark');
+  setCookie('theme',isDark?'dark':'light',365);
+  updateThemeLabel();
+});
+
+var btnHr=document.getElementById('btnHr');
+var btnEn=document.getElementById('btnEn');
+function applyLang(lang,save){
+  window.__lang=lang;
+  document.documentElement.setAttribute('data-lang',lang);
+  document.documentElement.lang=lang;
+  if(save)setCookie('lang',lang,365);
+  btnHr.classList.toggle('active',lang==='hr');
+  btnEn.classList.toggle('active',lang==='en');
+  document.body.classList.add('lang-switching');
+  setTimeout(function(){
+    document.querySelectorAll('[data-t]').forEach(function(el){
+      var k=el.getAttribute('data-t');
+      if(T[lang][k]!==undefined)el.textContent=T[lang][k];
+    });
+    updateThemeLabel();
+    document.body.classList.remove('lang-switching');
+  },150);
+}
+function setLang(lang){applyLang(lang,true);}
+applyLang(window.__lang||'hr',false);
+
+var observer=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(e.isIntersecting){setTimeout(function(){e.target.classList.add('visible');},60);observer.unobserve(e.target);}
+  });
+},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach(function(el){observer.observe(el);});
+
+function copyUrl(btn,url){
+  navigator.clipboard.writeText(url).then(function(){
+    var orig=btn.innerHTML;
+    btn.innerHTML='<svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+    setTimeout(function(){btn.innerHTML=orig;},1800);
+  });
+}
+</script>
+</body>
+</html>
